@@ -25,7 +25,7 @@ if [ "$(uname -s)" = "Darwin" ]; then
     exit 1
 fi
 
-# 尝试安装 QEMU 用户态（Debian/Ubuntu / Fedora）
+# 尝试安装 QEMU 用户态（Debian/Ubuntu / Fedora / Arch）
 try_install_qemu() {
     if command -v apt-get >/dev/null 2>&1; then
         echo -e "${YELLOW}    尝试安装: sudo apt-get install -y qemu-user-static${NC}"
@@ -42,6 +42,11 @@ try_install_qemu() {
         sudo yum install -y qemu-user-static
         return $?
     fi
+    if command -v pacman >/dev/null 2>&1; then
+        echo -e "${YELLOW}    尝试安装: sudo pacman -Syu qemu-user-static --noconfirm qemu-user-static${NC}"
+        sudo pacman -Syu --noconfirm qemu-user-static
+        return $?
+    fi
     return 1
 }
 
@@ -51,6 +56,7 @@ try_install_cross_toolchain() {
         echo -e "${YELLOW}    尝试安装: sudo apt-get install -y gcc-riscv64-linux-gnu${NC}"
         sudo apt-get update -qq && sudo apt-get install -y gcc-riscv64-linux-gnu
         return $?
+
     fi
     if command -v dnf >/dev/null 2>&1; then
         echo -e "${YELLOW}    尝试安装: sudo dnf install -y gcc-riscv64-linux-gnu${NC}"
@@ -61,6 +67,12 @@ try_install_cross_toolchain() {
     if command -v yum >/dev/null 2>&1; then
         echo -e "${YELLOW}    尝试安装: sudo yum install -y gcc-riscv64-linux-gnu${NC}"
         sudo yum install -y gcc-riscv64-linux-gnu 2>/dev/null || true
+        command -v riscv64-linux-gnu-gcc >/dev/null 2>&1 && return 0
+        return 1
+    fi
+    if command -v pacman >/dev/null 2>&1; then
+        echo -e "${YELLOW}    尝试安装: sudo pacman -Syu --needed riscv64-linux-gnu-gcc --noconfirm${NC}"
+        sudo pacman -Syu --needed riscv64-linux-gnu-gcc --noconfirm || true
         command -v riscv64-linux-gnu-gcc >/dev/null 2>&1 && return 0
         return 1
     fi
@@ -84,6 +96,7 @@ else
         echo "    请手动安装，例如："
         echo "       Debian/Ubuntu: sudo apt-get install gcc-riscv64-linux-gnu"
         echo "       Fedora:        sudo dnf install gcc-riscv64-linux-gnu"
+        echo "       Arch:          sudo pacman -Syu --needed riscv64-linux-gnu-gcc"
         exit 1
     fi
 fi
