@@ -24,7 +24,7 @@ pub fn concurrent_counter(n_threads: usize, count_per_thread: usize) -> usize {
     let mut handlers = vec![];
     for _ in 0..n_threads {
         let val_clone = Arc::clone(&val);
-        handlers.push(thread::spawn(move || {
+        handlers.push(spawn(move || {
             *val_clone.lock().unwrap() += count_per_thread
         }));
     }
@@ -56,7 +56,7 @@ pub fn concurrent_collect(n_threads: usize) -> Vec<usize> {
     }
     val.lock().unwrap().sort();
     let val = val.lock().unwrap();
-    val
+    val.to_vec()
 }
 
 #[cfg(test)]
