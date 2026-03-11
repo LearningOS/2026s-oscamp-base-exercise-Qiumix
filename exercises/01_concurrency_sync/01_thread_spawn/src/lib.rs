@@ -35,6 +35,7 @@
 use std::cell::RefCell;
 #[allow(unused_imports)]
 use std::thread;
+use std::thread::Thread;
 #[allow(unused_imports)]
 use std::time::Duration;
 
@@ -173,8 +174,8 @@ pub fn double_in_thread(numbers: Vec<i32>) -> Vec<i32> {
 pub fn parallel_sum(a: Vec<i32>, b: Vec<i32>) -> (i32, i32) {
     // TODO: Create two threads to sum a and b respectively
     // Join both threads to get results
-    let handle1 = thread::spawn(|| a.into_iter().product());
-    let handle2 = thread::spawn(|| b.into_iter().product());
+    let handle1 = thread::spawn(|| a.into_iter().sum());
+    let handle2 = thread::spawn(|| b.into_iter().sum());
     (handle1.join().unwrap(), handle2.join().unwrap())
 }
 
@@ -222,7 +223,11 @@ thread_local! {
 /// Hint: Use `THREAD_COUNT.with(|cell| { ... })` to access the thread‑local variable.
 pub fn increment_thread_local() -> usize {
     // TODO: Use THREAD_COUNT.with to increment and return the new count
-    todo!()
+    THREAD_COUNT.with(|cell| {
+        let mut cell_mut = cell.borrow_mut();
+        *cell_mut += 1;
+        *cell_mut
+    })
 }
 
 /// Spawn two threads using a **scoped thread** to compute the sum of two slices without moving ownership.
@@ -238,7 +243,11 @@ pub fn scoped_slice_sum(a: &[i32], b: &[i32]) -> (i32, i32) {
     // TODO: Use thread::scope to spawn two threads
     // TODO: Each thread sums its slice
     // TODO: Wait for both threads and return the results
-    todo!()
+    thread::scope(|s| {
+        let h1 = s.spawn(|| a.iter().sum::<i32>());
+        let h2 = s.spawn(|| b.iter().sum::<i32>());
+        (h1.join().unwrap(), h2.join().unwrap())
+    })
 }
 
 /// Handle a possible panic in a spawned thread.
@@ -255,7 +264,16 @@ pub fn scoped_slice_sum(a: &[i32], b: &[i32]) -> (i32, i32) {
 pub fn handle_panic(value: i32, should_panic: bool) -> Result<i32, ()> {
     // TODO: Spawn a thread that either panics or returns value
     // TODO: Join and map the result appropriately
-    todo!()
+    let handler = thread::spawn(move || match should_panic {
+        true => {
+            panic!("oops");
+        }
+        false => Ok(value),
+    });
+    match handler.join() {
+        Err(e) => Err(()),
+        Ok(val) => val,
+    }
 }
 
 #[cfg(test)]
@@ -307,11 +325,13 @@ mod tests {
 
         let counters = Arc::new(Mutex::new(Vec::new()));
         let mut handles = Vec::new();
-        for _ in 0..2 {
+        for i in 0..2 {
             let counters = Arc::clone(&counters);
             handles.push(thread::spawn(move || {
                 let v1 = increment_thread_local();
+                println!("nya: {i}, {v1}");
                 let v2 = increment_thread_local();
+                println!("nya: {i}, {v2}");
                 counters.lock().unwrap().push((v1, v2));
             }));
         }
