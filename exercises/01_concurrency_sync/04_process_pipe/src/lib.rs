@@ -34,6 +34,7 @@
 use std::fmt::format;
 use std::io::{self, Read, Write};
 use std::process::{Command, Output, Stdio};
+use std::str::from_utf8;
 
 /// Execute the given shell command and return its stdout output.
 ///
@@ -161,7 +162,16 @@ pub fn run_command_with_result(program: &str, args: &[&str]) -> io::Result<Strin
     // TODO: Set stdout to Stdio::piped()
     // TODO: Execute with .output() and handle Result
     // TODO: Convert stdout to String with from_utf8, mapping errors to io::Error
-    todo!()
+    let child = Command::new(program)
+        .args(args)
+        .stdout(Stdio::piped())
+        .output()?;
+    String::from_utf8(child.stdout).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Output was not valid UTF-8: {}", e),
+        )
+    })
 }
 
 /// Interact with `grep` via bidirectional pipes, filtering lines that contain a pattern.
@@ -191,7 +201,27 @@ pub fn pipe_through_grep(pattern: &str, input: &str) -> String {
     // TODO: Drop stdin to close pipe
     // TODO: Read output from child stdout line by line
     // TODO: Collect and return matching lines
-    todo!()
+    let mut child = Command::new("grep")
+        .arg(pattern)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    {
+        let mut stdin = child.stdin.take().unwrap();
+        for i in input.lines() {
+            stdin.write_all(i.as_bytes()).unwrap();
+            stdin.write_all(b"\n").unwrap();
+        }
+    }
+    let mut out = String::new();
+    child
+        .stdout
+        .take()
+        .unwrap()
+        .read_to_string(&mut out)
+        .unwrap();
+    out
 }
 
 #[cfg(test)]
