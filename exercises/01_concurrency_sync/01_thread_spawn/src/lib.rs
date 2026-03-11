@@ -329,9 +329,7 @@ mod tests {
             let counters = Arc::clone(&counters);
             handles.push(thread::spawn(move || {
                 let v1 = increment_thread_local();
-                println!("nya: {i}, {v1}");
                 let v2 = increment_thread_local();
-                println!("nya: {i}, {v2}");
                 counters.lock().unwrap().push((v1, v2));
             }));
         }
