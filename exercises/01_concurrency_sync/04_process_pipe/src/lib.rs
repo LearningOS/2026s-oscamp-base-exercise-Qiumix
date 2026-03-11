@@ -31,8 +31,9 @@
 //! Each function includes a `TODO` comment indicating where you need to write code.
 //! Run `cargo test` to check your implementations.
 
+use std::fmt::format;
 use std::io::{self, Read, Write};
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 
 /// Execute the given shell command and return its stdout output.
 ///
@@ -53,7 +54,15 @@ pub fn run_command(program: &str, args: &[&str]) -> String {
     // TODO: Set stdout to Stdio::piped()
     // TODO: Execute with .output() and get output
     // TODO: Convert stdout to String and return
-    todo!()
+
+    let program = Command::new(program)
+        .args(args)
+        .stdout(Stdio::piped())
+        .output();
+    let out: Output = program.unwrap();
+
+    let out = String::from_utf8(out.stdout).unwrap();
+    out
 }
 
 /// Write data to child process (cat) stdin via pipe and read its stdout output.
@@ -89,7 +98,20 @@ pub fn pipe_through_cat(input: &str) -> String {
     // TODO: Write input to child process stdin
     // TODO: Drop stdin to close pipe (otherwise cat won't exit)
     // TODO: Read output from child process stdout
-    todo!()
+    let mut cat = Command::new("cat")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    {
+        let mut stdin = cat.stdin.take().unwrap();
+        stdin.write_all(input.as_bytes());
+    }
+    let mut out = String::new();
+    let mut stdout = cat.stdout.take().unwrap();
+    stdout.read_to_string(&mut out).unwrap();
+    cat.wait().unwrap();
+    out
 }
 
 /// Get child process exit code.
@@ -110,7 +132,9 @@ pub fn get_exit_code(command: &str) -> i32 {
     // TODO: Use Command::new("sh").args(["-c", command])
     // TODO: Execute and get status
     // TODO: Return exit code
-    todo!()
+    let mut child = Command::new("sh").args(["-c", command]).spawn().unwrap();
+
+    child.wait().unwrap().code().unwrap()
 }
 
 /// Execute the given shell command and return its stdout output as a `Result`.
