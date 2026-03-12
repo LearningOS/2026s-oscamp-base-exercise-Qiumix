@@ -27,7 +27,12 @@
 pub unsafe extern "C" fn my_memcpy(dst: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     // TODO: Implement memcpy
     // Hint: read bytes from src one by one and write to dst
-    todo!()
+    unsafe {
+        for i in 0..n {
+            *(dst.add(i)) = *(src.add(i))
+        }
+    }
+    dst
 }
 
 /// Set `n` bytes starting at `dst` to the value `c`.
@@ -39,7 +44,12 @@ pub unsafe extern "C" fn my_memcpy(dst: *mut u8, src: *const u8, n: usize) -> *m
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn my_memset(dst: *mut u8, c: u8, n: usize) -> *mut u8 {
     // TODO: Implement memset
-    todo!()
+    unsafe {
+        for i in 0..n {
+            *(dst.add(i)) = c
+        }
+    }
+    dst
 }
 
 /// Copy `n` bytes from `src` to `dst`, correctly handling overlapping memory.
@@ -52,7 +62,16 @@ pub unsafe extern "C" fn my_memset(dst: *mut u8, c: u8, n: usize) -> *mut u8 {
 pub unsafe extern "C" fn my_memmove(dst: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     // TODO: Implement memmove
     // Hint: when dst > src and regions overlap, copy backwards (from end to start)
-    todo!()
+    unsafe {
+        if dst as u8 > src as u8 {
+            for i in 0..n {
+                *(dst.add(n - i - 1)) = *(src.add(n - i - 1));
+            }
+        } else {
+            my_memcpy(dst, src, n);
+        }
+    }
+    dst
 }
 
 /// Return the length of a null-terminated byte string, excluding the trailing null.
@@ -62,7 +81,15 @@ pub unsafe extern "C" fn my_memmove(dst: *mut u8, src: *const u8, n: usize) -> *
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn my_strlen(s: *const u8) -> usize {
     // TODO: Implement strlen
-    todo!()
+    let mut len = 0;
+    unsafe {
+        loop {
+            if *(s.add(len)) == '\n' as u8 {
+                return len;
+            }
+            len += 1;
+        }
+    }
 }
 
 /// Compare two null-terminated byte strings.
@@ -76,8 +103,18 @@ pub unsafe extern "C" fn my_strlen(s: *const u8) -> usize {
 /// `s1` and `s2` must each point to a valid null-terminated byte string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn my_strcmp(s1: *const u8, s2: *const u8) -> i32 {
-    // TODO: Implement strcmp
-    todo!()
+    let mut i = 0;
+    unsafe {
+        loop {
+            if *s1.add(i) == *s2.add(i) {
+                i += 1;
+            } else if *s1.add(i) >= *s2.add(i) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
+    }
 }
 
 // ============================================================
