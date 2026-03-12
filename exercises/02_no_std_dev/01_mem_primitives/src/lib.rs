@@ -107,6 +107,9 @@ pub unsafe extern "C" fn my_strcmp(s1: *const u8, s2: *const u8) -> i32 {
     unsafe {
         loop {
             if *s1.add(i) == *s2.add(i) {
+                if *s1.add(i) == '\0' as u8 {
+                    return 0;
+                }
                 i += 1;
             } else if *s1.add(i) >= *s2.add(i) {
                 return 1;
