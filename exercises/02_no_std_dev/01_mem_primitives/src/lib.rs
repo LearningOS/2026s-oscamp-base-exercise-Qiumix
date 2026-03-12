@@ -84,7 +84,7 @@ pub unsafe extern "C" fn my_strlen(s: *const u8) -> usize {
     let mut len = 0;
     unsafe {
         loop {
-            if *(s.add(len)) == '\n' as u8 {
+            if *(s.add(len)) == '\0' as u8 {
                 return len;
             }
             len += 1;
