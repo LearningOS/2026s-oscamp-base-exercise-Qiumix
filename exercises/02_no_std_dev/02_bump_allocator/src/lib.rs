@@ -66,8 +66,8 @@ unsafe impl GlobalAlloc for BumpAllocator {
         loop {
             let addr = self.next.load(Ordering::SeqCst);
             let align = layout.align();
-            let aligned_next = (addr + align - 1) & !(align - 1);
-            let end = aligned_next + layout.size();
+            let aligned_addr = (addr + align - 1) & !(align - 1);
+            let end = aligned_addr + layout.size();
             if end > self.heap_end {
                 return null_mut();
             } else {
@@ -76,7 +76,7 @@ unsafe impl GlobalAlloc for BumpAllocator {
                     .compare_exchange(addr, end, Ordering::SeqCst, Ordering::SeqCst)
                     .is_ok()
                 {
-                    return aligned_next as *mut u8;
+                    return aligned_addr as *mut u8;
                 }
             }
         }
