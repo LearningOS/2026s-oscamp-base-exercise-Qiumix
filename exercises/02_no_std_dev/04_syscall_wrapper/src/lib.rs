@@ -192,32 +192,26 @@ const NATIVE_SYS_EXIT: usize = 0;
 
 /// Write data from `buf` to file descriptor `fd`.
 pub fn sys_write(fd: usize, buf: &[u8]) -> isize {
-    let ret;
-    unsafe {
-        ret = syscall3(NATIVE_SYS_WRITE, fd, *buf.as_ptr() as usize, buf.len());
-    }
     // TODO: Call syscall3 to implement write
-    ret
+    unsafe {
+        syscall3(NATIVE_SYS_WRITE, fd, *buf.as_ptr() as usize, buf.len()) //
+    }
 }
 
 /// Read data from file descriptor `fd` into `buf`.
 pub fn sys_read(fd: usize, buf: &mut [u8]) -> isize {
     // TODO: Call syscall3 to implement read
-    let ret;
     unsafe {
-        ret = syscall3(NATIVE_SYS_READ, fd, *buf.as_ptr() as usize, buf.len());
+        syscall3(NATIVE_SYS_READ, fd, buf.as_ptr() as usize, buf.len()) //
     }
-    ret
 }
 
 /// Close file descriptor `fd`.
 pub fn sys_close(fd: usize) -> isize {
     // TODO: Call syscall3 to implement close
-    let ret;
     unsafe {
-        ret = syscall3(NATIVE_SYS_CLOSE, fd, 0, 0);
+        syscall3(NATIVE_SYS_CLOSE, fd, 0, 0) //
     }
-    ret
 }
 
 /// Terminate the current process.
