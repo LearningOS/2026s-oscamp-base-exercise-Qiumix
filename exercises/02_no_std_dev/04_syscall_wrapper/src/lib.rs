@@ -194,7 +194,7 @@ const NATIVE_SYS_EXIT: usize = 0;
 pub fn sys_write(fd: usize, buf: &[u8]) -> isize {
     // TODO: Call syscall3 to implement write
     unsafe {
-        syscall3(NATIVE_SYS_WRITE, fd, *buf.as_ptr() as usize, buf.len()) //
+        syscall3(NATIVE_SYS_WRITE, fd, buf.as_ptr() as usize, buf.len()) //
     }
 }
 
