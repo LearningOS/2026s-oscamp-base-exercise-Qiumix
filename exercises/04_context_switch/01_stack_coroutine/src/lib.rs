@@ -1,6 +1,6 @@
 #![cfg(target_arch = "riscv64")]
 
-/// Saved register state for one task (riscv64). Layout must match the offsets used in the asm below: for one task (riscv64). Layout must match the offsets used in the asm below:
+/// Saved register state for one task (riscv64). Layout must match the offsets used in the asm below:
 /// `sp` at 0, `ra` at 8, then `s0`–`s11` at 16, 24, … 104.
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy)]
@@ -48,12 +48,9 @@ impl TaskContext {
     /// - Leave `s0`–`s11` zero; they will be loaded on switch.
     pub fn init(&mut self, stack_top: usize, entry: usize) {
         *self = Self::empty();
-
         let aligned_sp = stack_top & !0b1111;
         self.ra = entry as u64;
         self.sp = aligned_sp as u64;
-
-        // todo!("set ra = entry, sp = stack_top (16-byte aligned)")
     }
 }
 
@@ -65,11 +62,11 @@ use std::arch::naked_asm;
 /// load from `[a1]` (new), zero `a0`/`a1` so we do not leak pointers into the new context, then `ret`.
 ///
 /// Must be `#[unsafe(naked)]` to prevent the compiler from generating a prologue/epilogue.
-// #[unsafe(naked)]
-pub unsafe fn switch_context(old: &mut TaskContext, new: &TaskContext) {
+#[unsafe(naked)]
+pub unsafe extern "C" fn switch_context(old: &mut TaskContext, new: &TaskContext) {
     naked_asm!(
-        "sd ra, 0(a0)",
-        "sd sp, 8(a0)",
+        "sd sp, 0(a0)",
+        "sd ra, 8(a0)",
         "sd s0, 16(a0)",
         "sd s1, 24(a0)",
         "sd s2, 32(a0)",
@@ -83,8 +80,8 @@ pub unsafe fn switch_context(old: &mut TaskContext, new: &TaskContext) {
         "sd s10, 96(a0)",
         "sd s11, 104(a0)",
         //
-        "ld ra, 0(a1)",
-        "ld sp, 8(a1)",
+        "ld sp, 0(a1)",
+        "ld ra, 8(a1)",
         "ld s0, 16(a1)",
         "ld s1, 24(a1)",
         "ld s2, 32(a1)",
@@ -97,6 +94,8 @@ pub unsafe fn switch_context(old: &mut TaskContext, new: &TaskContext) {
         "ld s9, 88(a1)",
         "ld s10, 96(a1)",
         "ld s11, 104(a1)",
+        "mv a0, zero",
+        "mv a1, zero",
         "ret",
     );
 }
@@ -106,14 +105,10 @@ const STACK_SIZE: usize = 1024 * 64;
 /// Allocate a stack for a coroutine. Returns `(buffer, stack_top)` where `stack_top` is the high address
 /// (stack grows down). The buffer must be kept alive for the lifetime of the context using this stack.
 pub fn alloc_stack() -> (Vec<u8>, usize) {
-    let mut buf = vec![0u8; STACK_SIZE];
-    let top;
-    unsafe {
-        top = *buf.as_ptr() as usize + STACK_SIZE;
-    }
+    let buf = vec![0u8; STACK_SIZE];
+    let top = buf.as_ptr() as usize + STACK_SIZE;
     let aligned_top = top & !0b1111;
     (buf, aligned_top)
-    // todo!("allocate stack buffer, return (buffer, stack_top) with stack_top 16-byte aligned")
 }
 
 #[cfg(test)]
