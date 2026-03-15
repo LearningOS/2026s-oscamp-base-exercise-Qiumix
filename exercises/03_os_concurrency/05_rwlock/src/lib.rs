@@ -46,14 +46,14 @@ impl<T> RwLock<T> {
                 std::hint::spin_loop();
                 continue;
             }
-            match self.state.compare_exchange(s, s + 1, AcqRel, Acquire) {
-                Ok(_) => {
-                    return RwLockReadGuard { lock: self };
-                }
-                Err(_) => {
-                    spin_loop();
-                }
+            if self
+                .state
+                .compare_exchange(s, s + 1, AcqRel, Acquire)
+                .is_ok()
+            {
+                return RwLockReadGuard { lock: self };
             }
+            spin_loop();
         }
     }
 
