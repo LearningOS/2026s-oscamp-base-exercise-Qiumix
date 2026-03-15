@@ -13,7 +13,10 @@
 //! When thread A writes with Release, and thread B reads the same location with Acquire,
 //! thread B will see all writes that thread A performed before the Release.
 
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::{
+    hint::spin_loop,
+    sync::atomic::{AtomicBool, AtomicU32, Ordering},
+};
 
 /// Use Release-Acquire semantics to safely pass data between two threads.
 ///
@@ -38,9 +41,10 @@ impl FlagChannel {
     /// - What Ordering should be used for writing data?
     /// - What Ordering should be used for writing ready? (ensuring data writes are visible to consumer)
     pub fn produce(&self, value: u32) {
+        self.data.store(value, Ordering::Relaxed);
+        self.ready.store(true, Ordering::Release);
         // TODO: Store data (choose appropriate Ordering)
         // TODO: Set ready = true (choose appropriate Ordering so data writes complete before this)
-        todo!()
     }
 
     /// Consumer: spin-wait for ready flag, then read data.
@@ -49,9 +53,12 @@ impl FlagChannel {
     /// - What Ordering should be used for reading ready? (ensuring it sees data writes from produce)
     /// - What Ordering should be used for reading data?
     pub fn consume(&self) -> u32 {
+        while !self.ready.load(Ordering::Acquire) {
+            spin_loop();
+        }
+        self.data.load(Ordering::Relaxed)
         // TODO: Spin-wait for ready to become true (choose appropriate Ordering)
         // TODO: Read data (choose appropriate Ordering)
-        todo!()
     }
 
     /// Reset channel state
@@ -81,15 +88,27 @@ impl OnceCell {
     ///
     /// Hint: use `compare_exchange` to ensure only one thread succeeds.
     pub fn init(&self, val: u32) -> bool {
+        let init =
+            self.initialized
+                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst);
+        if init.is_ok() {
+            self.value.store(val, Ordering::SeqCst);
+            true
+        } else {
+            false
+        }
         // TODO: Use compare_exchange to ensure initialization only once
         // Store value on success
-        todo!()
     }
 
     /// Get value. Returns Some if initialized, otherwise None.
     pub fn get(&self) -> Option<u32> {
+        if self.initialized.load(Ordering::SeqCst) {
+            Some(self.value.load(Ordering::SeqCst))
+        } else {
+            None
+        }
         // TODO: Check initialized flag, then read value
-        todo!()
     }
 }
 
