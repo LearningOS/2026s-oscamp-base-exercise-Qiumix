@@ -212,29 +212,21 @@ impl Mmu {
     /// 4. 页表命中 → 回填 TLB（insert），返回 Some(ppn)
     /// 5. 页表未命中 → 返回 None（缺页）
     pub fn translate(&mut self, vpn: u64) -> Option<u64> {
-        let find = self.tlb.entries.iter().find_map(|te| {
-            if te.asid == self.current_asid {
-                return Some(te);
-            } else {
-                None
-            }
-        });
-        if let Some(te) = find {
-            return Some(te.ppn);
+        if let Some(ppn) = self.tlb.lookup(vpn, self.current_asid) {
+            return Some(ppn);
         }
-        let find = self.page_table.iter().find_map(|pte| {
-            if pte.1.vpn == vpn {
-                return Some(pte);
-            } else {
-                None
-            }
-        });
-        if let Some(pte) = find {
-            self.tlb
-                .insert(pte.1.vpn, pte.1.ppn, self.current_asid, pte.1.flags);
-            return Some(pte.1.ppn);
-        }
-        None
+        let pte = self
+            .page_table
+            .iter()
+            .find(
+                |(asid, mapping)| *asid == self.current_asid && mapping.vpn == vpn, //
+            )
+            .map(|(_, mapping)| mapping)?;
+
+        self.tlb
+            .insert(pte.vpn, pte.ppn, self.current_asid, pte.flags);
+
+        Some(pte.ppn)
         // TODO: 实现 TLB + 页表的二级查找
     }
 }
