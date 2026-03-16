@@ -1,24 +1,3 @@
-//! # Single‑Level Page Table Address Translation
-//!
-//! This exercise simulates a simple single‑level page table to help you understand the process of virtual‑to‑physical address translation.
-//!
-//! ## Concepts
-//! - Virtual address = Virtual Page Number (VPN) + Page Offset (offset)
-//! - Page table: VPN → PPN mapping table
-//! - Address translation: Physical address = PPN × PAGE_SIZE + offset
-//! - Page fault: accessing an unmapped virtual page
-//!
-//! ## Address Format (Simplified Model)
-//! ```text
-//! Virtual address (32‑bit):
-//! 31          12 11          0
-//! ┌──────────────┬────────────┐
-//! │   VPN (20 bits)  │ offset (12 bits) │
-//! └──────────────┴────────────┘
-//!
-//! Page size: 4KB (2^12 = 4096 bytes)
-//! ```
-
 /// 页大小 4KB
 pub const PAGE_SIZE: usize = 4096;
 /// 页内偏移位数
@@ -64,20 +43,24 @@ impl SingleLevelPageTable {
     ///
     /// 提示：在 `entries[vpn]` 处存放一个 `PageTableEntry`。
     pub fn map(&mut self, vpn: usize, ppn: u32, flags: u8) {
+        let pte = PageTableEntry {
+            ppn: ppn,
+            flags: flags,
+        };
+        self.entries[vpn] = Some(pte);
         // TODO: 在页表中建立 vpn -> ppn 的映射
-        todo!()
     }
 
     /// 取消虚拟页号 `vpn` 的映射。
     pub fn unmap(&mut self, vpn: usize) {
         // TODO: 将 entries[vpn] 设为 None
-        todo!()
+        self.entries[vpn] = None;
     }
 
     /// 查询虚拟页号 `vpn` 对应的页表项。
     pub fn lookup(&self, vpn: usize) -> Option<&PageTableEntry> {
         // TODO: 返回 entries[vpn] 的引用（如果存在）
-        todo!()
+        self.entries[vpn].as_ref()
     }
 
     /// 将虚拟地址翻译为物理地址。
@@ -91,9 +74,22 @@ impl SingleLevelPageTable {
     pub fn translate(&self, va: u32, is_write: bool) -> TranslateResult {
         // TODO: 实现虚拟地址到物理地址的翻译
         // 提示：
-        //   let vpn = (va >> PAGE_OFFSET_BITS) as usize;
-        //   let offset = va & ((1 << PAGE_OFFSET_BITS) - 1);
-        todo!()
+        let vpn = va_to_vpn(va);
+        let offset = va_to_offset(va);
+        let pte = self.lookup(vpn);
+        match pte {
+            None => TranslateResult::PageFault,
+            Some(pte) => {
+                let pte = *pte;
+                if (pte.flags as u32) & (PTE_VALID as u32) == 0 {
+                    return TranslateResult::PageFault;
+                }
+                if is_write && ((pte.flags as u32) & (PTE_WRITE as u32) == 0) {
+                    return TranslateResult::PermissionDenied;
+                }
+                TranslateResult::Ok(make_pa(pte.ppn, offset))
+            }
+        }
     }
 }
 
@@ -101,22 +97,21 @@ impl SingleLevelPageTable {
 ///
 /// 提示：右移 PAGE_OFFSET_BITS 位。
 pub fn va_to_vpn(va: u32) -> usize {
-    // TODO
-    todo!()
+    let vpn = (va >> PAGE_OFFSET_BITS) as usize;
+    vpn
 }
 
 /// 从虚拟地址中提取页内偏移。
 ///
 /// 提示：用掩码提取低 PAGE_OFFSET_BITS 位。
 pub fn va_to_offset(va: u32) -> u32 {
-    // TODO
-    todo!()
+    let offset = va & ((1 << PAGE_OFFSET_BITS) - 1);
+    offset
 }
 
 /// 由物理页号和偏移量拼出物理地址。
 pub fn make_pa(ppn: u32, offset: u32) -> u32 {
-    // TODO
-    todo!()
+    ppn * (PAGE_SIZE as u32) + offset
 }
 
 #[cfg(test)]
