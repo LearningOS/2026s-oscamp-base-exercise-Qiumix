@@ -1,24 +1,3 @@
-//! # SV39 三级页表
-//!
-//! 本练习模拟 RISC-V SV39 三级页表的构造和地址翻译。
-//! 注意，实际上的三级页表实现并非如本练习中使用 HashMap 模拟，本练习仅作为模拟帮助学习。
-//! 你需要实现页表的创建、映射和地址翻译（页表遍历）。
-//!
-//! ## 知识点
-//! - SV39：39 位虚拟地址，三级页表
-//! - VPN 拆分：VPN[2] (9bit) | VPN[1] (9bit) | VPN[0] (9bit)
-//! - 页表遍历（page table walk）逐级查找
-//! - 大页（2MB superpage）映射
-//!
-//! ## SV39 虚拟地址布局
-//! ```text
-//! 38        30 29       21 20       12 11        0
-//! ┌──────────┬───────────┬───────────┬───────────┐
-//! │ VPN[2]   │  VPN[1]   │  VPN[0]   │  offset   │
-//! │  9 bits  │  9 bits   │  9 bits   │  12 bits  │
-//! └──────────┴───────────┴───────────┴───────────┘
-//! ```
-
 use std::collections::HashMap;
 
 /// 页大小 4KB
@@ -32,6 +11,8 @@ pub const PTE_R: u64 = 1 << 1;
 pub const PTE_W: u64 = 1 << 2;
 pub const PTE_X: u64 = 1 << 3;
 
+pub const MASK9: u64 = 0x1FF;
+pub const PGSHIFT: u64 = 12;
 /// PPN 在 PTE 中的偏移
 const PPN_SHIFT: u32 = 10;
 
@@ -102,8 +83,14 @@ impl Sv39PageTable {
     ///
     /// 提示：右移 (12 + level * 9) 位，然后与 0x1FF 做掩码。
     pub fn extract_vpn(va: u64, level: usize) -> usize {
+        // #define PXSHIFT(level)  (PGSHIFT+(9*(level)))
+        // #define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
         // TODO: 从虚拟地址中提取指定级别的 VPN 索引
-        todo!()
+        (((va) >> Self::px_shift(level)) & MASK9) as usize
+    }
+
+    fn px_shift(level: usize) -> usize {
+        PGSHIFT as usize + (9 * (level))
     }
 
     /// 建立从虚拟页到物理页的映射（4KB 页）。
@@ -113,6 +100,14 @@ impl Sv39PageTable {
     /// - `pa`: 物理地址（会自动对齐到页边界）
     /// - `flags`: 标志位（如 PTE_V | PTE_R | PTE_W）
     pub fn map_page(&mut self, va: u64, pa: u64, flags: u64) {
+        let mut lv = 2;
+        let mut vpn = Self::extract_vpn(va, lv);
+        let mut nodes = &self.nodes;
+        loop {
+            if lv >= 1 && (vpn & PTE_V as usize == 0) {
+                let new_node = self.alloc_node();
+            }
+        }
         // TODO: 实现三级页表的映射
         //
         // 提示：你需要从根页表开始，逐级向下遍历页表层级（level 2 → level 1 → level 0）。
