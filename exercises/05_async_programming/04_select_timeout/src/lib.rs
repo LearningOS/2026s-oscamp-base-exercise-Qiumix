@@ -37,10 +37,10 @@ where
     F2: Future<Output = T>,
 {
     tokio::select! {
-        val = f1().await => {
+        val = f1 => {
             val
         }
-        val = f2().await => {
+        val = f2 => {
             val
         }
     }
