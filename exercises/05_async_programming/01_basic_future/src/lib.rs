@@ -1,6 +1,7 @@
 //! # Manual Future Implementation
 //!
-//! In this exercise, you will manually implement the `Future` trait for custom types to understand the core mechanism of asynchronous runtime.
+//! In this exercise, you will manually implement the `Future` trait for custom
+//! types to understand the core mechanism of asynchronous runtime.
 //!
 //! ## Concepts
 //! - `std::future::Future` trait
@@ -33,7 +34,13 @@ impl Future for CountDown {
     type Output = &'static str;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        todo!()
+        if self.count == 0 {
+            Poll::Ready("liftoff!")
+        } else {
+            self.get_mut().count -= 1;
+            cx.waker().wake_by_ref();
+            Poll::Pending
+        }
     }
 }
 
@@ -57,7 +64,13 @@ impl Future for YieldOnce {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        todo!()
+        if self.yielded {
+            Poll::Ready(())
+        } else {
+            self.get_mut().yielded = true;
+            cx.waker().wake_by_ref();
+            Poll::Pending
+        }
     }
 }
 
