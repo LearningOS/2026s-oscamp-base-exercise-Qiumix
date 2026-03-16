@@ -157,7 +157,7 @@ impl Tlb {
         self.entries
             .iter()
             .map(|te| if te.valid { 1 } else { 0 })
-            .count()
+            .sum()
     }
 }
 
