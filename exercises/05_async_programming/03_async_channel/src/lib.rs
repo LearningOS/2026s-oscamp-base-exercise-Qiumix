@@ -15,23 +15,54 @@ use tokio::sync::mpsc;
 ///
 /// Hint: Set channel capacity to items.len().max(1)
 pub async fn producer_consumer(items: Vec<String>) -> Vec<String> {
+    let len = items.len().max(1);
+    let (tx, mut rx) = mpsc::channel(len);
+    tokio::spawn(async move {
+        for i in items {
+            let _ = tx.send(i).await;
+        }
+        drop(tx);
+    });
+
+    let comsumer = tokio::spawn(async move {
+        let mut res = vec![];
+        while let Some(val) = rx.recv().await {
+            res.push(val);
+        }
+        res
+    });
+    comsumer.await.unwrap()
     // TODO: Create channel with mpsc::channel
     // TODO: Spawn producer task: iterate through items, send each one
     // TODO: Spawn consumer task: loop recv until channel closes, collect results
     // TODO: Wait for consumer to complete and return results
-    todo!()
 }
 
 /// Fan‑in pattern: multiple producers, one consumer.
 /// Create `n_producers` producers, each sending `"producer {id}: message"`.
 /// Consumer collects all messages, sorts them, and returns.
 pub async fn fan_in(n_producers: usize) -> Vec<String> {
+    let (tx, mut rx) = mpsc::channel(n_producers);
+    for i in 0..n_producers {
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let _ = tx.send(format!("producer {i}: message")).await;
+        });
+    }
+    drop(tx);
+    let comsumer = tokio::spawn(async move {
+        let mut res = vec![];
+        while let Some(val) = rx.recv().await {
+            res.push(val);
+        }
+        res
+    });
+    comsumer.await.unwrap()
     // TODO: Create mpsc channel
     // TODO: Spawn n_producers producer tasks
     //       Each sends format!("producer {id}: message")
     // TODO: Drop the original sender (important! otherwise channel won't close)
     // TODO: Consumer loops receiving, collects and sorts
-    todo!()
 }
 
 #[cfg(test)]
